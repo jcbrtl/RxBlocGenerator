@@ -47,6 +47,10 @@ extension StringExtensions on String {
     return count;
   }
 
+  String toRedString() {
+    return '\x1B[31m' + this + '\x1B[0m';
+  }
+
   /// endregion
 
   ///region Generator specific extensions

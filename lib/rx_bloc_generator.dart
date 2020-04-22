@@ -1,5 +1,6 @@
 import 'package:analyzer/dart/element/element.dart';
 import 'package:rx_bloc/annotation/rx_bloc_annotations.dart';
+import 'package:rx_bloc_generator/utilities.dart';
 import 'package:source_gen/source_gen.dart';
 
 import 'string_extensions.dart';
