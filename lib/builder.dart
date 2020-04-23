@@ -2,7 +2,7 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:build/build.dart';
 import 'package:rx_bloc/annotation/rx_bloc_annotations.dart';
 import 'package:rx_bloc_generator/rx_bloc_generator.dart';
-import 'package:rx_bloc_generator/utilities.dart';
+import 'package:rx_bloc_generator/utilities/utilities.dart';
 import 'package:source_gen/source_gen.dart';
 
 Builder rxBlocGenerator(BuilderOptions options) {
@@ -42,7 +42,8 @@ class RxBlocGeneratorForAnnotation extends GeneratorForAnnotation<RxBloc> {
     try {
       return RxBlocGenerator(classElement, eventsClass, statesClass).generate();
     } catch (ex) {
-      // We cannot generate empty file, but we can write a warning message
+      // These errors are unrecoverable, so the user needs to fix them first
+      // (an example would be a missing states or events class).
       return '/// Please fix errors in order to successfully generate file.';
     }
   }

@@ -51,6 +51,12 @@ extension StringExtensions on String {
     return '\x1B[31m' + this + '\x1B[0m';
   }
 
+  String getTypeFromString() {
+    final index = this.indexOf('(');
+    final str = this.substring(0, index).replaceAll(' ', '');
+    return str;
+  }
+
   /// endregion
 
   ///region Generator specific extensions

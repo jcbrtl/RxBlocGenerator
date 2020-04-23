@@ -1,9 +1,10 @@
+import 'package:analyzer/dart/constant/value.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:rx_bloc/annotation/rx_bloc_annotations.dart';
-import 'package:rx_bloc_generator/utilities.dart';
+import 'package:rx_bloc_generator/utilities/utilities.dart';
 import 'package:source_gen/source_gen.dart';
 
-import 'string_extensions.dart';
+import 'package:rx_bloc_generator/utilities/string_extensions.dart';
 
 final _eventAnnotationChecker = TypeChecker.fromRuntime(RxBlocEvent);
 
@@ -154,12 +155,21 @@ extension _FirstParameter on MethodElement {
           annotation.getField('type').toString().contains('behaviour');
 
       if (isBehaviorSubject) {
-        var seedField = annotation.getField('seed');
+        final seedField = annotation.getField('seed');
+        if (seedField.isNull) logError('Seed value can not be null.');
 
-        /// TODO: Should throw error when no seed value is set
-        /// TODO: Type mismatch between seed type and first parameter type should throw error
+        final firstParam = firstParameterType.replaceAll(' ', '');
+        final typeAsString = seedField.toString().getTypeFromString();
+        if (typeAsString != firstParam && !seedField.isNull) {
+          StringBuffer msg = StringBuffer();
+          msg.write('Type mismatch between seed type and ');
+          msg.write('expected parameter type:\n');
+          msg.write('\tExpected: \'$firstParam\'');
+          msg.write('\tGot: \'$typeAsString\'');
+          logError(msg.toString());
+        }
 
-        var seedValue = seedField.toString().convertToValidString();
+        final seedValue = seedField.toString().convertToValidString();
         return 'BehaviorSubject.seeded($seedValue)';
       }
     }
