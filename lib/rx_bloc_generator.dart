@@ -156,18 +156,22 @@ extension _FirstParameter on MethodElement {
 
       if (isBehaviorSubject) {
         final seedField = annotation.getField('seed');
-        if (seedField.isNull) logError('Seed value can not be null.');
 
-        final firstParam = firstParameterType.replaceAll(' ', '');
-        final typeAsString = seedField.toString().getTypeFromString();
-        if (typeAsString != firstParam && !seedField.isNull) {
-          StringBuffer msg = StringBuffer();
-          msg.write('Type mismatch between seed type and ');
-          msg.write('expected parameter type:\n');
-          msg.write('\tExpected: \'$firstParam\'');
-          msg.write('\tGot: \'$typeAsString\'');
-          logError(msg.toString());
-        }
+        // Check for any errors regarding the seed value
+        if (!seedField.isNull) {
+          final firstParam = firstParameterType.replaceAll(' ', '');
+          final typeAsString = seedField.toString().getTypeFromString();
+          // Check for seed value mismatch
+          if (typeAsString != firstParam) {
+            final msg = StringBuffer();
+            msg.write('Type mismatch between seed type and ');
+            msg.write('expected parameter type:\n');
+            msg.write('\tExpected: \'$firstParam\'');
+            msg.write('\tGot: \'$typeAsString\'');
+            logError(msg.toString());
+          }
+        } else
+          logError('Seed value can not be null.');
 
         final seedValue = seedField.toString().convertToValidString();
         return 'BehaviorSubject.seeded($seedValue)';

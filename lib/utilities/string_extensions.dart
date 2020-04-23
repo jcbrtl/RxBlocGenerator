@@ -4,10 +4,9 @@ final _collections = ['List', 'Map', 'Set'];
 extension StringExtensions on String {
   /// region Universal String extension
 
-  /// Returns the index of the [n]th occurence of a [pattern]
+  /// Returns the index of the [n]th occurrence of a [pattern]
   /// starting from the end of the string.
-  ///
-  /// Returns -1 if the nth occurence of the string doesn't exist
+  /// Returns -1 if the nth occurrence of the string doesn't exist
   int nthIndexReverse(String pattern, int n) {
     int index = this.length;
     try {
@@ -32,7 +31,7 @@ extension StringExtensions on String {
   /// Counts the number of appearances of a pattern
   /// within the range of two indices.
   int count(String pattern, [int startIndex = 0, int endIndex]) {
-    if (endIndex == null) endIndex = this.length - 1;
+    if (endIndex == null) endIndex = this.length;
     final substr = this.substring(startIndex, endIndex);
 
     int index = 0;
@@ -47,97 +46,104 @@ extension StringExtensions on String {
     return count;
   }
 
+  /// Converts string to red string when printed in terminal
   String toRedString() {
     return '\x1B[31m' + this + '\x1B[0m';
   }
 
-  String getTypeFromString() {
-    final index = this.indexOf('(');
-    final str = this.substring(0, index).replaceAll(' ', '');
-    return str;
+  /// Checks whether a string contains all the patterns
+  bool containsAll(List<String> patterns) {
+    return patterns.every((pattern) => this.contains(pattern));
   }
 
   /// endregion
 
   ///region Generator specific extensions
 
-  /// Searches and removes spacing between primitive type names
-  /// and the opening brackets so it can be parsed correctly.
-  String _removeSpacingBetweenPrimitiveAndBracket() {
-    var str = this;
-    _primitives.forEach((prim) {
-      final origPrim = prim;
-      prim += ' (';
-      if (!str.contains(prim)) return;
-
-      int index = str.indexOf(prim);
-
-      while (index != -1) {
-        str = str.replaceFirst(prim, '$origPrim(');
-        index = str.indexOf(prim);
-      }
-    });
-
-    return str;
-  }
-
-  /// Searches and removes default constructors of primitive types
-  /// returning a string that is correctly cleared
-  String _removePrimitiveConstructors() {
-    var str = this._removeSpacingBetweenPrimitiveAndBracket();
-    _primitives.forEach((prim) {
-      prim += '(';
-      if (!str.contains(prim)) return;
-
-      int ind = str.indexOf(prim);
-      while (ind != -1) {
-        int entered = str.count(
-            '(', 0, ind); // Number of brackets entered before the inner one
-
-        str = str.removeCharacterAt(str.nthIndexReverse(')', entered + 1));
-        str = str.replaceFirst(prim, '', ind);
-
-        ind = str.indexOf(prim);
-      }
-    });
-
-    return str;
-  }
-
-  /// Searches and removes unnecessary parts
-  /// of a constant expression collection
-  String _removeCollectionConstructor() {
-    var str = this;
-
-    _collections.forEach((coll) {
-      coll += '<';
-      if (!str.contains(coll)) return;
-
-      int ind = str.indexOf(coll);
-      while (ind != -1) {
-        int entered = str.count('(', 0, ind);
-        int ind2 = str.indexOf('>', ind);
-        // There may be an empty space, so check for it
-        if (str[ind2 + 1] == ' ') ind2++;
-
-        str = str.replaceRange(ind, ind2 + 2, '');
-        str = str.removeCharacterAt(str.nthIndexReverse(')', entered + 1));
-
-        ind = str.indexOf(coll);
-      }
-    });
-
-    return str;
-  }
-
-  /// Converts a string to a valid generated string
   String convertToValidString() {
-    return this
-        ._removeCollectionConstructor()
-        ._removePrimitiveConstructors()
+    final str = this
+        .trim()
+        ._removeTopLayerCollection()
+        .replaceAll(' ', '')
+        ._removePrimitiveTypes()
         .replaceAll('=', ':');
+    return str._removeCollectionTypes();
   }
 
-  ///endregion
+  /// When nested collections, removes first found collection,
+  /// starting from top layer. Else, it returns the structure as is.
+  String _removeTopLayerCollection() {
+    var str = this.trim();
+    if (str.containsAll(['(', ')', '<', '>']))
+      str = str.substring(str.indexOf('(') + 1, str.lastIndexOf(')'));
+    return str;
+  }
+
+  /// Removes all constructors of primitive types
+  String _removePrimitiveTypes() {
+    var str = this.trim();
+    _primitives.forEach((itm) {
+      final _prim = itm + '(';
+      var index = str.indexOf(_prim);
+      while (index != -1) {
+        str = str.replaceFirst(_prim, '', index).replaceFirst(')', '', index);
+        index = str.indexOf(_prim, index + 1);
+      }
+    });
+    return str;
+  }
+
+  /// Removes all collection constructors
+  String _removeCollectionTypes() {
+    var str = this.trim();
+
+    _collections.forEach((itm) {
+      final _coll = itm;
+      int index = str.indexOf(_coll);
+      while (index != -1) {
+        str = str.replaceFirst(
+            str.substring(index, str.indexOf('(', index)), '', index);
+        str = str._trimBracketPair(startIndex: index);
+        index = str.indexOf(_coll);
+      }
+    });
+
+    return str;
+  }
+
+  /// Removes the first bracket pair starting from [startIndex]
+  /// preserving the balance of other brackets. If no pair can
+  /// be removed, original string is returned
+  String _trimBracketPair({int startIndex = 0}) {
+    var str = this;
+    int index = str.indexOf('(', startIndex);
+    if (index == -1) return str;
+    int endIndex = str.indexOf(')', index);
+    if (endIndex == -1) return str;
+    while (index != -1 || endIndex != -1) {
+      final substr = str.substring(index + 1, endIndex);
+      final startBr = substr.count('(');
+      final endBr = substr.count(')');
+      if (startBr == endBr)
+        return str
+            .replaceFirst('(', '', index)
+            .replaceFirst(')', '', endIndex - 1);
+
+      // Reset the end index and move the start index
+      endIndex = str.indexOf(')', endIndex + 1);
+      if (endIndex == -1) {
+        index = str.indexOf('(', index + 1);
+        endIndex = str.indexOf(')', index);
+      }
+    }
+    return str;
+  }
+
+  /// Returns the type of a value presented as a string
+  String getTypeFromString() {
+    return this.substring(0, this.indexOf('(')).replaceAll(' ', '');
+  }
+
+  /// endregion
 
 }

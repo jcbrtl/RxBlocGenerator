@@ -6,9 +6,7 @@ import 'package:rxdart/rxdart.dart';
 
 part 'news_bloc.rxb.g.dart';
 
-class News {
-  const News();
-}
+class News {}
 
 abstract class NewsBlocEvents {
   /// Fetch news
