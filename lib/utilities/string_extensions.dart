@@ -56,6 +56,8 @@ extension StringExtensions on String {
     return patterns.every((pattern) => this.contains(pattern));
   }
 
+  String capitalize() => "${this[0].toUpperCase()}${this.substring(1)}";
+
   /// endregion
 
   ///region Generator specific extensions

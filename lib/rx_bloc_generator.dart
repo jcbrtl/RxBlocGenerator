@@ -80,13 +80,25 @@ class RxBlocGenerator {
     _writeln("}");
   }
 
-  String _generateEvents() => eventsElement.methods.mapToEvents().join('\n');
-
-  String _generateStates() => statesElement.accessors
-      .filterRxBlocIgnoreState()
-      .map((element) => element.variable)
-      .mapToStates()
+  String _generateEvents() => eventsElement.methods
+      .checkForNonAbstractEvents()
+      .mapToEvents()
       .join('\n');
+
+  String _generateStates() {
+    // Check if there are any states defined as methods
+    statesElement.methods.forEach((method) {
+      logError(
+          'State \'${method.name}\' should be defined using the get keyword.');
+    });
+
+    return statesElement.accessors
+        .checkForNonAbstractStates()
+        .filterRxBlocIgnoreState()
+        .map((element) => element.variable)
+        .mapToStates()
+        .join('\n');
+  }
 }
 
 extension _MapToEvents on Iterable<MethodElement> {
@@ -113,7 +125,27 @@ extension _MapToStates on Iterable<PropertyInducingElement> {
   ''');
 }
 
-extension _FilterViewModelIgnoreState on List<PropertyAccessorElement> {
+extension _CheckingEvents on List<MethodElement> {
+  List<MethodElement> checkForNonAbstractEvents() {
+    this.forEach((method) {
+      if (!method.isAbstract)
+        logError(
+            'Event \'${method.definition}\' should not contain a body definition.');
+    });
+    return this;
+  }
+}
+
+extension _FilteringAndCheckingStates on List<PropertyAccessorElement> {
+  List<PropertyAccessorElement> checkForNonAbstractStates() {
+    this.forEach((fieldElement) {
+      if (!fieldElement.isAbstract)
+        logError(
+            'State \'${fieldElement.name}\' should not contain a body definition.');
+    });
+    return this;
+  }
+
   Iterable<PropertyAccessorElement> filterRxBlocIgnoreState() =>
       where((fieldElement) {
         if (fieldElement.metadata.isEmpty) {
@@ -126,10 +158,6 @@ extension _FilterViewModelIgnoreState on List<PropertyAccessorElement> {
           return annotation.element.toString().contains('RxBlocIgnoreState');
         });
       });
-}
-
-extension _Capitalize on String {
-  String capitalize() => "${this[0].toUpperCase()}${this.substring(1)}";
 }
 
 extension _FirstParameter on MethodElement {
