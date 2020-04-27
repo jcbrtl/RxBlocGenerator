@@ -13,6 +13,15 @@ Builder rxBlocGenerator(BuilderOptions options) {
 }
 
 class RxBlocGeneratorForAnnotation extends GeneratorForAnnotation<RxBloc> {
+  String _generateMissingClassError(String className, String blocName) {
+    StringBuffer buffer = StringBuffer();
+    buffer.write('\'$blocName$className\' class missing.\n');
+    buffer.write('\n\tPlease make sure you have properly named and specified');
+    buffer
+        .write('\n\tyour class in the same file where the $blocName resides.');
+    return buffer.toString();
+  }
+
   @override
   generateForAnnotatedElement(
       Element element, ConstantReader annotation, BuildStep buildStep) async {
@@ -35,16 +44,11 @@ class RxBlocGeneratorForAnnotation extends GeneratorForAnnotation<RxBloc> {
         orElse: () => null);
 
     if (eventsClass == null)
-      logError('No events class specified for ${classElement.name} bloc!');
+      logError(_generateMissingClassError(eventsClassName, classElement.name));
     if (statesClass == null)
-      logError('No states class specified for ${classElement.name} bloc!');
+      logError(_generateMissingClassError(statesClassName, classElement.name));
 
-    try {
+    if (statesClass != null && eventsClass != null)
       return RxBlocGenerator(classElement, eventsClass, statesClass).generate();
-    } catch (ex) {
-      // These errors are unrecoverable, so the user needs to fix them first
-      // (an example would be a missing states or events class).
-      return '/// Please fix errors in order to successfully generate file.';
-    }
   }
 }
