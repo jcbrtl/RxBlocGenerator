@@ -24,8 +24,18 @@ class EventsGenerator {
     return _stringBuffer.toString();
   }
 
-  String _generateEvents() =>
-      _eventsClass.methods.checkForNonAbstractEvents().mapToEvents().join('\n');
+  String _generateEvents() {
+    _eventsClass.fields.forEach((field) {
+      var msg = '${_eventsClass.name} should contain methods only,';
+      msg += ' while \'${field.name}\' seems to be a field.';
+      logError(msg);
+    });
+
+    return _eventsClass.methods
+        .checkForNonAbstractEvents()
+        .mapToEvents()
+        .join('\n');
+  }
 }
 
 extension _CheckingEvents on List<MethodElement> {
@@ -40,17 +50,19 @@ extension _CheckingEvents on List<MethodElement> {
 }
 
 extension _MapToEvents on Iterable<MethodElement> {
-  Iterable<String> mapToEvents() => map((method) => '''
+  Iterable<String> mapToEvents() => map((method) {
+        return '''
   ///region ${method.name}
-
+ 
   final _\$${method.name}Event = ${method.streamType};
   @override
   ${method.definition} => _\$${method.name}Event.add(${method.firstParameterName});
   ///endregion ${method.name}
-  ''');
+  ''';
+      });
 }
 
-extension _FirstParameter on MethodElement {
+extension _MethodExtensions on MethodElement {
   String get firstParameterType =>
       "${parameters.isNotEmpty ? parameters.first.type : 'void'}";
 
@@ -58,12 +70,36 @@ extension _FirstParameter on MethodElement {
       "${parameters.isNotEmpty ? parameters.first.name : 'null'}";
 
   String get definition {
-    if (this.parameters.isEmpty) {
-      return "$returnType $name()";
-    }
+    var def = this.toString();
+    this.parameterNames.forEach((paramName) {
+      final param = this.getParameter(paramName);
 
-    return "$returnType $name(${parameters.first.type} ${parameters.first.name})";
+      // Add required annotation before type
+      if (param.hasRequired) {
+        int index = def.indexOf(paramName);
+        index = def.lastIndexOf(param.type.toString(), index);
+        def = def.substring(0, index) + ' @required ' + def.substring(index);
+      }
+
+      // Add default value (if any)
+      if (param.defaultValueCode != null) {
+        int index = def.indexOf(paramName);
+        def = def.substring(0, index) +
+            def.substring(index, index + paramName.length) +
+            ': ${param.defaultValueCode}' +
+            def.substring(index + paramName.length);
+      }
+    });
+
+    return def;
   }
+
+  ParameterElement getParameter(String paramName) {
+    return this.parameters.firstWhere((param) => param.name == paramName);
+  }
+
+  List<String> get parameterNames =>
+      this.parameters.map((param) => param.name).toList();
 
   String get streamType {
     // Check if it is a behaviour event

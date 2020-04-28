@@ -32,7 +32,7 @@ class StatesGenerator {
     });
 
     return _statesClass.accessors
-        .checkForNonAbstractStates()
+        .checkForErroneousStates()
         .filterRxBlocIgnoreState()
         .map((element) => element.variable)
         .mapToStates()
@@ -41,21 +41,18 @@ class StatesGenerator {
 }
 
 extension _FilteringAndCheckingStates on List<PropertyAccessorElement> {
-  List<PropertyAccessorElement> checkForNonAbstractStates() {
+  List<PropertyAccessorElement> checkForErroneousStates() {
     this.forEach((fieldElement) {
+      final name = fieldElement.name.replaceAll('=', '');
       if (!fieldElement.isAbstract)
-        logError(
-            'State \'${fieldElement.name}\' should not contain a body definition.');
+        logError('State \'$name\' should not contain a body definition.');
     });
     return this;
   }
 
   Iterable<PropertyAccessorElement> filterRxBlocIgnoreState() =>
       where((fieldElement) {
-        if (fieldElement.metadata.isEmpty) {
-          return true;
-        }
-
+        if (fieldElement.metadata.isEmpty) return true;
         return !_ignoreStateAnnotationChecker.hasAnnotationOf(fieldElement);
       });
 }
