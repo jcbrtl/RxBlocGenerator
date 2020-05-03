@@ -11,6 +11,9 @@ class News {}
 abstract class NewsBlocEvents {
   /// Fetch news
   void fetch();
+
+  //@RxBlocEvent(type: RxBlocEventType.behaviour, seed: _TestEventArgs(id: 1))
+  void test(int id, {String name = 'name', bool shouldBroadcast = false});
 }
 
 abstract class NewsBlocStates {

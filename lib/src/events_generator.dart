@@ -13,7 +13,6 @@ class EventsGenerator {
   EventsGenerator(this._eventsClass);
 
   void _writeln([Object obj]) => _stringBuffer.writeln(obj);
-  void _write([Object obj]) => _stringBuffer.write(obj);
 
   String generate() {
     _writeln("\n\n  ///region Events");
@@ -22,6 +21,38 @@ class EventsGenerator {
     _writeln("\n  ///endregion Events");
 
     return _stringBuffer.toString();
+  }
+
+  String generateArgumentClasses() {
+    StringBuffer _argClassString = StringBuffer();
+    _argClassString.writeln('/// region Argument classes\n');
+    for (var method in _eventsClass.methods
+        .where((method) => method.parameters.length > 1)) {
+      _argClassString.writeln('/// region ${method.argumentsClassName} class');
+      _argClassString.writeln(_generateArgumentClass(method));
+      _argClassString
+          .writeln('/// endregion ${method.argumentsClassName} class');
+    }
+    _argClassString.writeln('\n/// endregion Argument classes\n');
+    return _argClassString.toString();
+  }
+
+  String _generateArgumentClass(MethodElement method) {
+    StringBuffer _buffer = StringBuffer();
+    final className = method.argumentsClassName;
+    final paramNames = method.parameterNames;
+    _buffer.writeln('\nclass $className {\n');
+    // Create all the parameters first
+    paramNames.forEach((paramName) {
+      final param = method.getParameter(paramName);
+      _buffer.writeln('final ${param.type.toString()} $paramName;');
+    });
+    // Create the constant constructor
+    _buffer.writeln('\nconst $className({');
+    paramNames.forEach((paramName) => _buffer.writeln('this.$paramName,'));
+    _buffer.writeln('});');
+    _buffer.writeln('\n}');
+    return _buffer.toString();
   }
 
   String _generateEvents() {
@@ -63,11 +94,26 @@ extension _MapToEvents on Iterable<MethodElement> {
 }
 
 extension _MethodExtensions on MethodElement {
-  String get firstParameterType =>
-      "${parameters.isNotEmpty ? parameters.first.type : 'void'}";
+  /// The name of the arguments class that will be generated if
+  /// the event contains more than one parameter
+  String get argumentsClassName => '_${this.name.capitalize()}EventArgs';
 
-  String get firstParameterName =>
-      "${parameters.isNotEmpty ? parameters.first.name : 'null'}";
+  String get streamTypeBasedOnParameters {
+    if (this.parameters.length > 1) return this.argumentsClassName;
+    return "${parameters.isNotEmpty ? parameters.first.type : 'void'}";
+  }
+
+  String get firstParameterName {
+    if (this.parameters.length > 1) {
+      var str = '${this.argumentsClassName}(';
+      this
+          .parameterNames
+          .forEach((paramName) => str += ' $paramName:$paramName,');
+      str += ')';
+      return str;
+    }
+    return "${parameters.isNotEmpty ? parameters.first.name : 'null'}";
+  }
 
   String get definition {
     var def = this.toString();
@@ -113,7 +159,7 @@ extension _MethodExtensions on MethodElement {
 
         // Check for any errors regarding the seed value
         if (!seedField.isNull) {
-          final firstParam = firstParameterType.replaceAll(' ', '');
+          final firstParam = streamTypeBasedOnParameters.replaceAll(' ', '');
           final typeAsString = seedField.toString().getTypeFromString();
           // Check for seed value mismatch
           if (typeAsString != firstParam) {
@@ -133,6 +179,6 @@ extension _MethodExtensions on MethodElement {
     }
 
     // Fallback case is a publish event
-    return 'PublishSubject<$firstParameterType>()';
+    return 'PublishSubject<$streamTypeBasedOnParameters>()';
   }
 }

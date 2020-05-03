@@ -24,6 +24,19 @@ abstract class $NewsBloc extends RxBlocBase
 
   ///endregion fetch
 
+  ///region test
+
+  final _$testEvent = PublishSubject<_TestEventArgs>();
+  @override
+  void test(int id, {String name: 'name', bool shouldBroadcast: false}) =>
+      _$testEvent.add(_TestEventArgs(
+        id: id,
+        name: name,
+        shouldBroadcast: shouldBroadcast,
+      ));
+
+  ///endregion test
+
   ///endregion Events
 
   ///region States
@@ -52,6 +65,27 @@ abstract class $NewsBloc extends RxBlocBase
 
   void dispose() {
     _$fetchEvent.close();
+    _$testEvent.close();
     super.dispose();
   }
 }
+
+/// region Argument classes
+
+/// region _TestEventArgs class
+
+class _TestEventArgs {
+  final int id;
+  final String name;
+  final bool shouldBroadcast;
+
+  const _TestEventArgs({
+    this.id,
+    this.name,
+    this.shouldBroadcast,
+  });
+}
+
+/// endregion _TestEventArgs class
+
+/// endregion Argument classes

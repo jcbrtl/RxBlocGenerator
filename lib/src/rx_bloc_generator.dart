@@ -58,7 +58,8 @@ class RxBlocGenerator {
     _writeln("\n  ${statesElement.displayName} get states => this;");
     _writeln("\n  ///endregion Type");
     _generateDisposeMethod();
-    _writeln("\n}");
+    _writeln("\n}\n");
+    _writeln(_eventsGenerator.generateArgumentClasses());
   }
 
   void _generateDisposeMethod() {

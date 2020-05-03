@@ -14,7 +14,6 @@ class StatesGenerator {
   StatesGenerator(this._statesClass);
 
   void _writeln([Object obj]) => _stringBuffer.writeln(obj);
-  void _write([Object obj]) => _stringBuffer.write(obj);
 
   String generate() {
     _writeln("\n  ///region States");
